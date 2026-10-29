@@ -1,6 +1,6 @@
 import Fastify from 'fastify';
 import pg from 'pg';
-import { validateTrace, type TraceInput } from './trace.ts';
+import { parseWindow, validateTrace, type TraceInput } from './trace.ts';
 
 const db = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const app = Fastify({ logger: true, bodyLimit: 1_000_000 });
@@ -34,6 +34,23 @@ app.get<{ Querystring: { limit?: string; before?: string; beforeId?: string } }>
         `SELECT id, created_at, model, status, latency_ms, input_tokens, output_tokens, error FROM traces
          ORDER BY created_at DESC, id DESC LIMIT $1`, [limit]);
   return { traces: rows };
+});
+
+// Per-model latency percentiles, error rate and token totals over a trailing window (?window=15m|1h|7d, default 1h).
+app.get<{ Querystring: { window?: string } }>('/v1/stats', async (req, reply) => {
+  const window = req.query.window ?? '1h';
+  const secs = parseWindow(window);
+  if (secs === null) return reply.code(400).send({ error: "window must look like '15m', '1h' or '7d' (max 30d)" });
+  const { rows } = await db.query(
+    `SELECT model, count(*)::int AS requests,
+       avg((status = 'error')::int)::float8 AS error_rate,
+       percentile_cont(0.5)  WITHIN GROUP (ORDER BY latency_ms) AS p50_ms,
+       percentile_cont(0.95) WITHIN GROUP (ORDER BY latency_ms) AS p95_ms,
+       percentile_cont(0.99) WITHIN GROUP (ORDER BY latency_ms) AS p99_ms,
+       sum(input_tokens)::float8 AS input_tokens, sum(output_tokens)::float8 AS output_tokens
+     FROM traces WHERE created_at > now() - make_interval(secs => $1)
+     GROUP BY model ORDER BY requests DESC`, [secs]);
+  return { window, models: rows };
 });
 
 app.get('/healthz', async () => ({ ok: true }));

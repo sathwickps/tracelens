@@ -16,7 +16,7 @@ Keep `METRICS.md` updated as you go; that's where the CV bullets come from.
 ## Week 1: real backend and a real data set
 1. [x] **Seed script** (`apps/api/src/seed.ts`): generate 100k realistic traces (mixed models, a long latency tail, ~3% errors).
    You'll need this to measure performance later.
-2. **Stats endpoint**: `GET /v1/stats?window=1h` returns p50/p95/p99 latency, error rate, tokens and cost per model.
+2. [x] **Stats endpoint**: `GET /v1/stats?window=1h` returns p50/p95/p99 latency, error rate, tokens and cost per model.
    Use Postgres `percentile_cont` and check it with `EXPLAIN ANALYZE`. Write the query time into METRICS.md.
 3. **Cost**: a per-model price table → `cost_usd` column computed at ingest.
 4. **Trace detail**: `GET /v1/traces/:id` returns the full prompt and response.

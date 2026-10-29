@@ -21,3 +21,13 @@ export function validateTrace(b: any): string | null {
   if (b.prompt === undefined) return 'prompt is required';
   return null;
 }
+
+const UNIT_SECS = { m: 60, h: 3600, d: 86400 } as const;
+
+// Parses a ?window value like '15m', '1h' or '7d' into seconds (max 30d). Returns null when invalid.
+export function parseWindow(w: unknown): number | null {
+  const m = typeof w === 'string' ? /^(\d{1,4})([mhd])$/.exec(w) : null;
+  if (!m) return null;
+  const secs = Number(m[1]) * UNIT_SECS[m[2] as keyof typeof UNIT_SECS];
+  return secs > 0 && secs <= 30 * 86400 ? secs : null;
+}
