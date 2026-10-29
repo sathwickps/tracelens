@@ -20,6 +20,7 @@ Before starting work, read PLAN.md and pick the first unchecked item in the curr
 docker compose up -d           # Postgres on host port 5433 (5432 is taken locally)
 npm run dev:api                # :4000
 npm run dev:web                # :3000
+npm run seed -w api [-- N]     # replaces ALL traces with N synthetic ones (default 100k)
 npm test                       # node:test via tsx
 npm run typecheck
 npm run example -w @tracelens/sdk   # needs ANTHROPIC_API_KEY in .env
